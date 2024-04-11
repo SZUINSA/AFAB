@@ -1,0 +1,15 @@
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - appId=
+      - appSecret=
+      - masterId=
+    ports:
+      - 50241:8080
+    volumes:
+      - ./data:/app/data
