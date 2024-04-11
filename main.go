@@ -303,8 +303,8 @@ func main() {
 			fmt.Println("初始化数据库失败")
 			return
 		}
-		if os.Getenv("appId") == "" || os.Getenv("appSecret") == "" {
-			fmt.Println("缺失appId或appSecret或MasterID")
+		if os.Getenv("appId") == "" || os.Getenv("appSecret") == "" || os.Getenv("masterId") == "" {
+			fmt.Println("缺失appId或appSecret或masterId")
 			return
 		}
 		client := getLarkClient()
