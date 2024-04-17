@@ -5,13 +5,19 @@ import (
 	"fmt"
 	"github.com/larksuite/oapi-sdk-go/v3"
 	"github.com/larksuite/oapi-sdk-go/v3/core"
+	"github.com/larksuite/oapi-sdk-go/v3/core/httpserverext"
+	larkevent "github.com/larksuite/oapi-sdk-go/v3/event"
+	"github.com/larksuite/oapi-sdk-go/v3/event/dispatcher"
 	larkbitable "github.com/larksuite/oapi-sdk-go/v3/service/bitable/v1"
+	larkcontact "github.com/larksuite/oapi-sdk-go/v3/service/contact/v3"
 	larkdocx "github.com/larksuite/oapi-sdk-go/v3/service/docx/v1"
 	larkdrive "github.com/larksuite/oapi-sdk-go/v3/service/drive/v1"
 	"github.com/larksuite/oapi-sdk-go/v3/service/im/v1"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 )
 
 func AddTable(client *lark.Client, ChatId string, Name string, Doc string) {
@@ -184,6 +190,22 @@ func UpdateRecord(client *lark.Client, AppToken string, TableId string, RecordId
 	fmt.Println(larkcore.Prettify(resp))
 }
 
+func getUserInfo(client *lark.Client, UserId string) *larkcontact.User {
+	req := larkcontact.NewGetUserReqBuilder().
+		UserId(UserId).
+		Build()
+	resp, err := client.Contact.User.Get(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	if !resp.Success() {
+		fmt.Println(resp.Code, resp.Msg, resp.RequestId())
+		return nil
+	}
+	return resp.Data.User
+}
+
 var FolderList map[string]map[string]string
 
 func GetFolderList(client *lark.Client, FolderToken string) {
@@ -297,6 +319,41 @@ func newGameHandler(w http.ResponseWriter, r *http.Request) {
 	AddTable(client, GroupID, "比赛表格", FileUrl)
 	_, _ = db.Exec("INSERT INTO `game` (GroupId,FolderToken,FileToken) VALUES (?,?,?)", GroupID, FolderToken, FileToken)
 }
+
+func callBackhandler() *dispatcher.EventDispatcher {
+	handler := dispatcher.NewEventDispatcher(os.Getenv("verToken"), os.Getenv("enentKey"))
+	handler.OnP2CardNewProtocalURLPreviewGet(func(ctx context.Context, event *dispatcher.URLPreviewGetEvent) (*dispatcher.URLPreviewGetResponse, error) {
+		fmt.Println(larkcore.Prettify(event))
+		fmt.Println(event.Event.Context.URL)
+		u, _ := url.Parse(event.Event.Context.URL)
+		queryParams := u.Query()
+		tParam := queryParams.Get("t")
+		if strings.Contains(tParam, "$name") {
+			client := getLarkClient()
+			Users := getUserInfo(client, event.Event.Operator.OpenID)
+			Name := ""
+			if Users != nil {
+				Name = *Users.Name
+			}
+			tParam = strings.ReplaceAll(tParam, "$name", Name)
+		}
+		return &dispatcher.URLPreviewGetResponse{
+			Inline: &dispatcher.Inline{
+				Title: tParam,
+			},
+		}, nil
+	})
+	return handler
+}
+func urlRedirect(w http.ResponseWriter, r *http.Request) {
+	u := r.URL.Query().Get("u")
+	if u != "" {
+		http.Redirect(w, r, u, http.StatusFound)
+		return
+	}
+	http.NotFound(w, r)
+}
+
 func main() {
 	{
 		if err := init_db(); err != nil {
@@ -320,5 +377,8 @@ func main() {
 	}
 	http.HandleFunc("/newfile", newFileHandler)
 	http.HandleFunc("/newgame", newGameHandler)
+	http.HandleFunc("/callback", httpserverext.NewEventHandlerFunc(callBackhandler(),
+		larkevent.WithLogLevel(larkcore.LogLevelDebug)))
+	http.HandleFunc("/url", urlRedirect)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

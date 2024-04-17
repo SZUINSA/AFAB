@@ -9,6 +9,8 @@ services:
       - appId=
       - appSecret=
       - masterId=
+      - verToken=
+      - eventKey=
     ports:
       - 50241:8080
     volumes:

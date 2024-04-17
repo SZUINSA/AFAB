@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/glebarez/sqlite v1.11.0
-	github.com/larksuite/oapi-sdk-go/v3 v3.2.2
+	github.com/larksuite/oapi-sdk-go/v3 v3.1.1-beta.3
 )
 
 require (
