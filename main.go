@@ -321,7 +321,7 @@ func newGameHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func callBackhandler() *dispatcher.EventDispatcher {
-	handler := dispatcher.NewEventDispatcher(os.Getenv("verToken"), os.Getenv("enentKey"))
+	handler := dispatcher.NewEventDispatcher(os.Getenv("verToken"), os.Getenv("eventKey"))
 	handler.OnP2CardNewProtocalURLPreviewGet(func(ctx context.Context, event *dispatcher.URLPreviewGetEvent) (*dispatcher.URLPreviewGetResponse, error) {
 		fmt.Println(larkcore.Prettify(event))
 		fmt.Println(event.Event.Context.URL)
