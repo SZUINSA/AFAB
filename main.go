@@ -324,7 +324,6 @@ func callBackhandler() *dispatcher.EventDispatcher {
 	handler := dispatcher.NewEventDispatcher(os.Getenv("verToken"), os.Getenv("eventKey"))
 	handler.OnP2CardNewProtocalURLPreviewGet(func(ctx context.Context, event *dispatcher.URLPreviewGetEvent) (*dispatcher.URLPreviewGetResponse, error) {
 		fmt.Println(larkcore.Prettify(event))
-		fmt.Println(event.Event.Context.URL)
 		u, _ := url.Parse(event.Event.Context.URL)
 		queryParams := u.Query()
 		tParam := queryParams.Get("t")
@@ -378,7 +377,7 @@ func main() {
 	http.HandleFunc("/newfile", newFileHandler)
 	http.HandleFunc("/newgame", newGameHandler)
 	http.HandleFunc("/callback", httpserverext.NewEventHandlerFunc(callBackhandler(),
-		larkevent.WithLogLevel(larkcore.LogLevelDebug)))
+		larkevent.WithLogLevel(larkcore.LogLevelInfo)))
 	http.HandleFunc("/url", urlRedirect)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
